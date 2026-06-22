@@ -29,3 +29,23 @@ require_sandbox() {
     exit 1
   fi
 }
+
+refresh_oauth_token() {
+  local token
+  token=$(security find-generic-password -s "Claude Code-credentials" -w 2>/dev/null \
+    | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('claudeAiOauth',{}).get('accessToken',''))" 2>/dev/null)
+
+  if [ -z "$token" ]; then
+    echo "Warning: could not refresh CLAUDE_CODE_OAUTH_TOKEN from keychain"
+    return
+  fi
+
+  local env_file="$REPO_ROOT/.env"
+  if grep -q "^CLAUDE_CODE_OAUTH_TOKEN=" "$env_file" 2>/dev/null; then
+    sed -i '' "s|^CLAUDE_CODE_OAUTH_TOKEN=.*|CLAUDE_CODE_OAUTH_TOKEN=$token|" "$env_file"
+  else
+    echo "CLAUDE_CODE_OAUTH_TOKEN=$token" >> "$env_file"
+  fi
+
+  echo "OAuth token refreshed."
+}

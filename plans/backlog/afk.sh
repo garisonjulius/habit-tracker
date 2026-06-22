@@ -8,6 +8,7 @@ if [ -z "$1" ]; then
 fi
 
 require_sandbox
+refresh_oauth_token
 
 stream_text='select(.type == "assistant").message.content[]? | select(.type == "text").text // empty | gsub("\n"; "\r\n") | . + "\r\n\n"'
 final_result='select(.type == "result").result // empty'
