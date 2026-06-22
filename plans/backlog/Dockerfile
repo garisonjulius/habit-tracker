@@ -23,8 +23,8 @@ EOF
 # Placed in /usr/local/bin which won't be touched by claude auto-updates.
 RUN cat > /usr/local/bin/claude <<'WRAPPER'
 #!/bin/bash
-if [ -z "$CLAUDE_CODE_OAUTH_TOKEN" ] && [ -f .env ]; then
-  CLAUDE_CODE_OAUTH_TOKEN=$(grep "^CLAUDE_CODE_OAUTH_TOKEN=" .env | cut -d= -f2-)
+if [ -z "$CLAUDE_CODE_OAUTH_TOKEN" ] && [ -f "${WORKSPACE_DIR}/.env" ]; then
+  CLAUDE_CODE_OAUTH_TOKEN=$(grep "^CLAUDE_CODE_OAUTH_TOKEN=" "${WORKSPACE_DIR}/.env" | cut -d= -f2-)
   export CLAUDE_CODE_OAUTH_TOKEN
 fi
 exec /home/agent/.local/bin/claude "$@"
