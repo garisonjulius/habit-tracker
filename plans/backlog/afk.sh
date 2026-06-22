@@ -1,12 +1,16 @@
 #!/bin/bash
 set -eo pipefail
-
-SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
+source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 
 if [ -z "$1" ]; then
   echo "Usage: $0 <iterations>"
   exit 1
 fi
+
+require_sandbox
+
+stream_text='select(.type == "assistant").message.content[]? | select(.type == "text").text // empty | gsub("\n"; "\r\n") | . + "\r\n\n"'
+final_result='select(.type == "result").result // empty'
 
 for ((i=1; i<=$1; i++)); do
   echo ""
@@ -19,16 +23,16 @@ for ((i=1; i<=$1; i++)); do
   issues=$(gh issue list --state open --json number,title,body,comments)
   ralph_commits=$(git log --grep="RALPH" -n 10 --format="%H%n%ad%n%B---" --date=short 2>/dev/null || echo "No RALPH commits found")
 
-  claude \
+  docker sandbox run claude . -- \
     --verbose \
     --print \
     --output-format stream-json \
-    "$issues Previous RALPH commits: $ralph_commits $(cat "$SCRIPT_DIR/prompt.md")" \
-  | tee "$tmpfile" \
+    "$issues Previous RALPH commits: $ralph_commits @plans/backlog/prompt.md" \
   | grep --line-buffered '^{' \
-  | jq --unbuffered -rj 'select(.type == "assistant").message.content[]? | select(.type == "text").text // empty'
+  | tee "$tmpfile" \
+  | jq --unbuffered -rj "$stream_text"
 
-  result=$(grep '^{' "$tmpfile" | jq -r 'select(.type == "result").result // empty')
+  result=$(jq -r "$final_result" "$tmpfile")
 
   if [[ "$result" == *"<promise>COMPLETE</promise>"* ]]; then
     echo ""
